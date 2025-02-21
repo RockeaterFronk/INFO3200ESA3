@@ -1,0 +1,63 @@
+﻿@model ChargerRentalViewModel
+
+<h2>@Model.Charger.Name - Rental</h2>
+
+<p>Description: @Model.Charger.Description</p>
+<p>Hourly Rate: $@Model.Charger.HourlyRate</p>
+
+@if (Model.IsRented && !Model.IsUserRenting)
+{
+    <p class="alert alert-warning">This charger is currently rented.</p>
+}
+else if (!Model.IsRented)
+{
+    <form asp-action="StartRental" method="post" style="display:inline-block;">
+        <input type="hidden" name="chargerId" value="@Model.Charger.ChargerId" />
+        <button type="submit" class="btn btn-success">Start Rental</button>
+    </form>
+}
+
+@if (Model.IsRented && Model.IsUserRenting)
+{
+    <form asp-action="StopRental" method="post" style="display:inline-block;">
+        <input type="hidden" name="chargerId" value="@Model.Charger.ChargerId" />
+        <button type="submit" class="btn btn-danger">Stop Rental</button>
+    </form>
+}
+
+<div>
+    <h3>Rental Time: <span id="rentalTimer">0h 0m 0s</span></h3>
+</div>
+
+<p id="amountDue">Amount Due: $@Model.Charger.AmountDue.ToString("F2")</p>
+
+
+@section Scripts {
+    <script>
+        var chargerId = @Model.Charger.ChargerId;
+
+        // Function to update the rental timer and amount due dynamically
+        function updateRentalStatus() {
+            $.ajax({
+                url: '@Url.Action("GetRentalStatus", "Charger")',
+                method: 'GET',
+                data: { chargerId: chargerId },
+                success: function(response) {
+                    if (response.success) {
+                        var elapsedTime = Math.floor(response.elapsedTime);
+                        var minutes = Math.floor(elapsedTime / 60);
+                        var seconds = elapsedTime % 60;
+                        var hours = Math.floor(minutes / 60);
+                        minutes = minutes % 60;
+
+                        document.getElementById("amountDue").innerText = "Amount Due: $" + response.amountDue.toFixed(2);
+                        document.getElementById("rentalTimer").innerText = hours + "h " + minutes + "m " + seconds + "s";
+                    }
+                }
+            });
+        }
+
+        // Update every second
+        setInterval(updateRentalStatus, 999);
+    </script>
+}
